@@ -1,0 +1,287 @@
+---
+title: "Credit Card Default Analysis"
+output:
+  html_notebook: default
+---
+
+```{r}
+# Load package
+setwd("C:/Users/mengf/OneDrive/Desktop/R_final_projec")
+library(tidyverse)
+library(gridExtra)
+library(dslabs)
+library(magrittr)
+library(ggplot2)
+library(ggpubr)
+library(dplyr)
+library(sjPlot)
+library(data.table)
+
+# Load data
+# Default of Credit Card Clients” dataset from Kaggle
+creditinfo1 <- read_csv('UCI.csv')
+
+```
+
+```{r}
+
+summary(creditinfo1)
+
+# rename default column cuz it's too long 
+colnames(creditinfo1)[colnames(creditinfo1)=="default.payment.next.month"] <- "default"
+
+```
+
+```{r}
+# calculate % change in billing amount
+creditinfo1[,"BILL_AMT89"] = (creditinfo1$BILL_AMT1-creditinfo1$BILL_AMT2)/creditinfo1$BILL_AMT2*100
+creditinfo1$BILL_AMT89[is.na(creditinfo1$BILL_AMT89)] <- 0
+creditinfo1$BILL_AMT89[!is.finite(creditinfo1$BILL_AMT89)] <- 0
+
+creditinfo1[,"BILL_AMT78"] = (creditinfo1$BILL_AMT2-creditinfo1$BILL_AMT3)/creditinfo1$BILL_AMT3*100
+creditinfo1$BILL_AMT78[is.na(creditinfo1$BILL_AMT78)] <- 0
+creditinfo1$BILL_AMT78[!is.finite(creditinfo1$BILL_AMT78)] <- 0
+
+creditinfo1[,"BILL_AMT67"] = (creditinfo1$BILL_AMT3-creditinfo1$BILL_AMT4)/creditinfo1$BILL_AMT4*100
+creditinfo1$BILL_AMT67[is.na(creditinfo1$BILL_AMT67)] <- 0
+creditinfo1$BILL_AMT67[!is.finite(creditinfo1$BILL_AMT67)] <- 0
+
+creditinfo1[,"BILL_AMT56"] = (creditinfo1$BILL_AMT4-creditinfo1$BILL_AMT5)/creditinfo1$BILL_AMT5*100
+creditinfo1$BILL_AMT56[is.na(creditinfo1$BILL_AMT56)] <- 0
+creditinfo1$BILL_AMT56[!is.finite(creditinfo1$BILL_AMT56)] <- 0
+
+creditinfo1[,"BILL_AMT45"] = (creditinfo1$BILL_AMT5-creditinfo1$BILL_AMT6)/creditinfo1$BILL_AMT6*100
+creditinfo1$BILL_AMT45[is.na(creditinfo1$BILL_AMT45)] <- 0
+creditinfo1$BILL_AMT45[!is.finite(creditinfo1$BILL_AMT45)] <- 0
+
+```
+
+```{r}
+# calculate % change in pay amount
+creditinfo1[,"PAY_AMT89"] = (creditinfo1$PAY_AMT1 - creditinfo1$PAY_AMT2)/creditinfo1$PAY_AMT2*100
+creditinfo1$PAY_AMT89[is.na(creditinfo1$PAY_AMT89)] <- 0
+creditinfo1$PAY_AMT89[!is.finite(creditinfo1$PAY_AMT89)] <- 0
+
+creditinfo1[,"PAY_AMT78"] = (creditinfo1$PAY_AMT2 - creditinfo1$PAY_AMT3)/creditinfo1$PAY_AMT3*100
+creditinfo1$PAY_AMT78[is.na(creditinfo1$PAY_AMT78)] <- 0
+creditinfo1$PAY_AMT78[!is.finite(creditinfo1$PAY_AMT78)] <- 0
+
+creditinfo1[,"PAY_AMT67"] = (creditinfo1$PAY_AMT3 - creditinfo1$PAY_AMT4)/creditinfo1$PAY_AMT4*100
+creditinfo1$PAY_AMT67[is.na(creditinfo1$PAY_AMT67)] <- 0
+creditinfo1$PAY_AMT67[!is.finite(creditinfo1$PAY_AMT67)] <- 0
+
+creditinfo1[,"PAY_AMT56"] = (creditinfo1$PAY_AMT4 - creditinfo1$PAY_AMT5)/creditinfo1$PAY_AMT5*100
+creditinfo1$PAY_AMT56[is.na(creditinfo1$PAY_AMT56)] <- 0
+creditinfo1$PAY_AMT56[!is.finite(creditinfo1$PAY_AMT56)] <- 0
+
+creditinfo1[,"PAY_AMT45"] = (creditinfo1$PAY_AMT5 - creditinfo1$PAY_AMT6)/creditinfo1$PAY_AMT6*100
+creditinfo1$PAY_AMT45[is.na(creditinfo1$PAY_AMT45)] <- 0
+creditinfo1$PAY_AMT45[!is.finite(creditinfo1$PAY_AMT45)] <- 0
+
+```
+
+```{r}
+# clean pay status
+# if pay <= 0 paid in time or in advance
+# if 0 < pay <= 3 paid late
+# if pay > 3  paid very late
+creditinfo1[,"REPAY_sept"] = creditinfo1$PAY_0
+creditinfo1$REPAY_sept[creditinfo1$PAY_0 <= 0] = 1
+creditinfo1$REPAY_sept[creditinfo1$PAY_0 > 0 & creditinfo1$PAY_0 <= 3] = 2
+creditinfo1$REPAY_sept[creditinfo1$PAY_0 > 3] = 3
+summary(creditinfo1$REPAY_sept)
+
+creditinfo1[,"REPAY_aug"] = creditinfo1$PAY_2
+creditinfo1$REPAY_aug[creditinfo1$PAY_2 <= 0] = 1
+creditinfo1$REPAY_aug[creditinfo1$PAY_2 > 0 & creditinfo1$PAY_2 <= 3] = 2
+creditinfo1$REPAY_aug[creditinfo1$PAY_2 > 3] = 3
+
+creditinfo1[,"REPAY_july"] = creditinfo1$PAY_3
+creditinfo1$REPAY_july[creditinfo1$PAY_3 <= 0] = 1
+creditinfo1$REPAY_july[creditinfo1$PAY_3 > 0 & creditinfo1$PAY_3 <= 3] = 2
+creditinfo1$REPAY_july[creditinfo1$PAY_3 > 3] = 3
+
+creditinfo1[,"REPAY_june"] = creditinfo1$PAY_4
+creditinfo1$REPAY_june[creditinfo1$PAY_4 <= 0] = 1
+creditinfo1$REPAY_june[creditinfo1$PAY_4 > 0 & creditinfo1$PAY_4 <= 3] = 2
+creditinfo1$REPAY_june[creditinfo1$PAY_4 > 3] = 3
+
+creditinfo1[,"REPAY_may"] = creditinfo1$PAY_5
+creditinfo1$REPAY_may[creditinfo1$PAY_5 <= 0] = 1
+creditinfo1$REPAY_may[creditinfo1$PAY_5 > 0 & creditinfo1$PAY_5 <= 3] = 2
+creditinfo1$REPAY_may[creditinfo1$PAY_5 > 3] = 3
+
+creditinfo1[,"REPAY_april"] = creditinfo1$PAY_6
+creditinfo1$REPAY_april[creditinfo1$PAY_6 <= 0] = 1
+creditinfo1$REPAY_april[creditinfo1$PAY_6 > 0 & creditinfo1$PAY_6 <= 3] = 2
+creditinfo1$REPAY_april[creditinfo1$PAY_6 > 3] = 3
+
+```
+
+---
+# Exploratory Analysis 
+```{r}
+# default distribution
+creditinfo1 %>% count(default)
+
+ggplot(creditinfo1,aes(factor(default),fill = factor(default))) +  
+  geom_bar(aes(y = (..count..)/sum(..count..))) + labs(title ="Distribution of Default Payment Next Month", x = "Default Payment Next Month", y = "Percentage")+scale_fill_discrete(name = "Default",labels = c("No Default","Default"))+
+  theme_pubr(legend=)
+```
+
+```{r}
+# corr matrix for categorical vars 
+temp<-creditinfo1[,c(25,2:6)]
+sjp.corr(temp)
+sjp.corr(temp)
+```
+
+```{r}
+# corr matrix for bill_amt vars 
+temp1<-creditinfo1[,c(25,26:30)]
+sjp.corr(temp1)
+```
+
+```{r}
+# corr matrix for pay_amt vars 
+temp2<-creditinfo1[,c(25,31:35)]
+temp2[,2:6] <-log(temp2[,2:6])
+sjp.corr(temp2)
+```
+
+```{r}
+# corr matrix for pay_amt vars 
+temp3<-creditinfo1[,c(25,36:41)]
+sjp.corr(temp3)
+```
+
+
+```{r}
+# default vs. limit balance 
+ggplot(creditinfo1,aes(x=factor(default),y=LIMIT_BAL,fill=factor(default)))+geom_boxplot()+labs(title ="Default vs. Amount of given credit", x = "Default Next Month", y = "Amount of given credit")+scale_fill_discrete(name = "Default",labels = c("No Default","Default"))+theme_pubr()
+```
+
+```{r}
+# default vs. gender
+
+ggplot(creditinfo1,aes(x=factor(default),fill=factor(SEX)))+geom_bar(aes(y = (..count..)/sum(..count..)),position='fill')+labs(title ="Default vs. Sex", x = "Default Payment Next Month, Default = 1", y = "Percentage")+scale_fill_discrete(name = "Sex",labels = c("Male","Female"))+theme_pubr()
+
+```
+```{r}
+# default vs. pay status
+
+melted.paystatus <- melt(creditinfo1[,c(25,36:41)],id.vars='default',measure.vars = c('REPAY_sept','REPAY_aug','REPAY_july','REPAY_june','REPAY_may',"REPAY_april"))
+
+head(melted.paystatus)
+
+ggplot(melted.paystatus,aes(x=factor(default),fill=factor(value),))+geom_bar(aes(y = (..count..)/sum(..count..)),position='fill')+labs(title ="Default vs. Repayment Status", x = "Default Payment Next Month, Default = 1", y = "Percentage")+scale_fill_discrete(name = "Repayment Status",labels = c("On Time","Late","Very Late"))+theme_pubr()+facet_grid(.~variable)
+
+```
+
+```{r}
+# default vs. marriage
+
+# clean data, some marriage status coded as 0, merge these into cat3=other
+creditinfo1$MARRIAGE[creditinfo1$MARRIAGE == 0] = 3
+
+# plot
+ggplot(creditinfo1,aes(x=factor(default),fill=factor(MARRIAGE)))+geom_bar(aes(y = (..count..)/sum(..count..)),position='fill')+labs(title ="Default Percentage vs. Marriage Status", x = "Default Payment Next Month, Default = 1", y = "Percentage")+scale_fill_discrete(name = "MARRIAGE",labels = c("Married","Single","Other"))+theme_pubr()
+```
+
+```{r}
+# plot default vs. age 
+ggplot(creditinfo1,aes(x=factor(default),y=AGE,fill=factor(default)))+geom_boxplot()+labs(title ="Default Percentage vs. Age", x = "Default Next Month", y = "Age")+scale_fill_discrete(name = "Default",labels = c("No Default","Default"))+theme_pubr()
+```
+
+```{r}
+# plot default vs. education
+# clean education
+creditinfo1$EDUCATION[creditinfo1$EDUCATION==6] = 4
+creditinfo1$EDUCATION[creditinfo1$EDUCATION==5] = 4
+creditinfo1$EDUCATION[creditinfo1$EDUCATION==0] = 4
+ggplot(creditinfo1,aes(x=factor(default),fill=factor(EDUCATION)))+geom_bar(position='fill')+labs(title ="Default Percentage vs. EDUCATION", x = "Default Payment Next Month, Default = 1", y = "Percentage")+scale_fill_discrete(name = "Education Level",labels = c("Graduate School", "University", "High Schhol","Others"))+theme_pubr()
+```
+
+```{r}
+# plot default vs. bill amount change * 5
+
+melted.bill <- melt(creditinfo1[,25:30],id.vars='default',measure.vars = c('BILL_AMT89','BILL_AMT78','BILL_AMT67','BILL_AMT56','BILL_AMT45'))
+
+head(melted.bill)
+
+ggplot(melted.bill,aes(x=factor(default),y=value,fill=factor(default)))+geom_boxplot()+labs(title ="Default vs. Percentgae Change in Bill Statement ", x = "Default Next Month", y = "Percentage Monthly Change in Repayment status")+scale_fill_discrete(name = "Default",,labels = c("No Default","Default"))+theme_pubr()+scale_y_continuous(limits=c(-5,5))+facet_grid(. ~ variable)
+
+## should add log to it
+
+```
+
+```{r}
+# plot default vs. repayment amount change * 5
+
+melted.pay <- melt(creditinfo1[,c(25,31:35)],id.vars='default',measure.vars = c('PAY_AMT89','PAY_AMT78','PAY_AMT67','PAY_AMT56','PAY_AMT45'))
+
+head(melted.pay)
+```
+
+
+```{r}
+ggplot(melted.pay,aes(x=factor(default),y=value,fill=factor(default)))+geom_boxplot()+labs(title ="Default vs. % Change in Repayment", x = "Default Next Month", y = "Percentage Monthly Change in Repayment status")+scale_fill_discrete(name = "Default",,labels = c("No Default","Default"))+theme_pubr()+scale_y_continuous(limits=c(-100,100))+facet_grid(. ~ variable)
+```
+---
+# Modeling
+```{r}
+
+#  step-wise regression with all the variables. 
+
+logit0=glm(default~LIMIT_BAL + as.factor(SEX) + as.factor(EDUCATION) + as.factor(MARRIAGE) + AGE+
+            as.factor(REPAY_sept)+as.factor(REPAY_aug)+as.factor(REPAY_july)+as.factor(REPAY_june)+
+            as.factor(REPAY_may)+as.factor(REPAY_april)+BILL_AMT89  + BILL_AMT78 + BILL_AMT67 + 
+             BILL_AMT56 + BILL_AMT45+PAY_AMT89+PAY_AMT78+PAY_AMT67+PAY_AMT56+PAY_AMT45,
+           data=creditinfo1)
+library(broom)
+lm.step<-step(logit0)
+library(car)
+a=tidy(lm.step)
+
+write.csv(a,file = "logit_step_wise.csv")
+```
+```{r}
+# select_model_1
+logit2=glm(default~LIMIT_BAL + as.factor(SEX) + as.factor(EDUCATION) + as.factor(MARRIAGE) + AGE, data=creditinfo1)
+summary(logit2)
+```
+
+```{r}
+# select_model_2
+logit3=glm(default~ as.factor(REPAY_sept)+as.factor(REPAY_aug)+as.factor(REPAY_july)+as.factor(REPAY_june)+as.factor(REPAY_may)+as.factor(REPAY_april),data=creditinfo1)
+summary(logit3)
+```
+
+
+```{r}
+# only with pay_AMT 
+logit4=glm(default~PAY_AMT89+PAY_AMT78+PAY_AMT56, data=creditinfo1)
+summary(logit4)
+
+```
+
+
+```{r}
+# final_model _1 
+logit1=glm(default~LIMIT_BAL + as.factor(SEX) + as.factor(EDUCATION) + as.factor(MARRIAGE) + AGE + as.factor(REPAY_sept)+as.factor(REPAY_aug)+as.factor(REPAY_july)+as.factor(REPAY_june)+as.factor(REPAY_may)+as.factor(REPAY_april)+PAY_AMT89+PAY_AMT78+PAY_AMT56,data=creditinfo1)
+summary(logit1)
+```
+
+```{r}
+
+logit_final=glm(default~LIMIT_BAL + as.factor(SEX) + as.factor(EDUCATION) + as.factor(MARRIAGE) + AGE + as.factor(REPAY_sept)+as.factor(REPAY_aug)+as.factor(REPAY_july)+as.factor(REPAY_june)+as.factor(REPAY_may)+as.factor(REPAY_april), data=creditinfo1)
+
+summary(logit_final)
+```
+```{r}
+logit_final0=glm(default~LIMIT_BAL + as.factor(SEX) + as.factor(EDUCATION) + as.factor(MARRIAGE) + AGE + as.factor(REPAY_sept)+as.factor(REPAY_aug)+as.factor(REPAY_july), data=creditinfo1)
+
+summary(logit_final0)
+```
+
+
