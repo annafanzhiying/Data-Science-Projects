@@ -1,0 +1,1070 @@
+---
+title: "Reproduction Code of Research by David Card on Minimum Wages and Employment"
+output: html_notebook
+---
+
+```{r}
+# Purpose: Econ 571-Spring2019
+# Note: This file is a reproduction of research by David Card  
+# Original Research Paper Title: Minimum Wages and Employment:A Case Study of the Fast-Food Industry in New Jersey and   Pennsylvania
+# Author: Zhiying Fan - 3/1/2019
+```
+
+```{r}
+# Read dataset dataset and assign it to `fastfood`
+library(haven)
+library(dplyr)
+library(AER)
+fastfood <- read_dta("fastfood.dta")
+View(fastfood)
+```
+
+```{r}
+# Add FTE before and FTE after to 'fastfood'
+# FTE = fulltime worker + managers + 0.5 * half time workers 
+fastfood[,"FTE"] = fastfood$nmgrs + fastfood$empft + (0.5 * fastfood$emppt)
+fastfood[,"FTE2"] = fastfood$nmgrs2 + fastfood$empft2 + (0.5 * fastfood$emppt2)
+```
+
+```{r}
+# Table 3: First 3 columns (from left to right)
+# 1st row means
+pa_FTE_mean = mean(fastfood$FTE[fastfood$state == 0],na.rm=T) 
+nj_FTE_mean = mean(fastfood$FTE[fastfood$state == 1],na.rm=T) 
+diff_FTE_mean = nj_FTE_mean - pa_FTE_mean
+# 1st row s.e. = SQR (VAR/N)
+# write s.e. function for later use 
+stderr <- function(x, na.rm=T) {
+  if (na.rm) x <- na.omit(x)
+  sqrt(var(x)/length(x))
+}
+pa_FTE_se = stderr(fastfood$FTE[fastfood$state == 0])
+nj_FTE_se = stderr(fastfood$FTE[fastfood$state == 1])
+diff_FTE_se = sqrt(pa_FTE_se^2 + nj_FTE_se^2 )
+# Print means and s.e. 
+pa_FTE_mean
+pa_FTE_se
+nj_FTE_mean
+nj_FTE_se
+diff_FTE_mean
+diff_FTE_se
+```
+
+```{r}
+# Table 3: First 3 columns (from left to right)
+# 2nd row means
+pa_FTE2_mean = mean(fastfood$FTE2[fastfood$state == 0],na.rm=T) 
+nj_FTE2_mean = mean(fastfood$FTE2[fastfood$state == 1],na.rm=T) 
+diff_FTE2_mean = nj_FTE2_mean - pa_FTE2_mean
+# 2nd row s.e. = SQR (VAR/N)
+pa_FTE2_se = stderr(fastfood$FTE2[fastfood$state == 0])
+nj_FTE2_se = stderr(fastfood$FTE2[fastfood$state == 1])
+diff_FTE2_se = sqrt(pa_FTE2_se^2 + nj_FTE2_se^2)
+# Print means and s.e. 
+pa_FTE2_mean
+pa_FTE2_se
+nj_FTE2_mean
+nj_FTE2_se
+diff_FTE2_mean
+diff_FTE2_se
+```
+
+```{r}
+# Table 3: First 3 columns (from left to right)
+# 3rd row means
+pa_FTEc_mean = pa_FTE2_mean - pa_FTE_mean
+nj_FTEc_mean = nj_FTE2_mean - nj_FTE_mean
+diff_FTEc_mean = nj_FTEc_mean - pa_FTEc_mean
+# 3rd row s.e.
+pa_FTEc_se = sqrt(pa_FTE_se^2 + pa_FTE2_se^2)
+nj_FTEc_se = sqrt(nj_FTE_se^2 + nj_FTE2_se^2)
+diff_FTEc_se = sqrt(pa_FTEc_se^2 + nj_FTEc_se^2)
+# Print means and s.e. 
+pa_FTEc_mean
+pa_FTEc_se
+nj_FTEc_mean
+nj_FTEc_se
+diff_FTEc_mean
+diff_FTEc_se
+```
+
+```{r}
+# Add change in FTE to 'fastfood'
+# FTEb = FTE2 - FTE
+fastfood[,"FTEb"] = fastfood$FTE2 - fastfood$FTE
+
+# Table 3: First 3 columns (from left to right)
+# 4th row means
+pa_FTEb_mean = mean(fastfood$FTEb[fastfood$state == 0],na.rm=T ) 
+nj_FTEb_mean = mean(fastfood$FTEb[fastfood$state == 1],na.rm=T ) 
+diff_FTEb_mean = nj_FTEb_mean - pa_FTEb_mean
+# 4th row s.e.
+pa_FTEb_se = stderr(fastfood$FTEb[fastfood$state == 0])
+nj_FTEb_se = stderr(fastfood$FTEb[fastfood$state == 1])
+diff_FTEb_se = sqrt(pa_FTEb_se^2 + nj_FTEb_se^2)
+# Print means and s.e. 
+pa_FTEb_mean 
+pa_FTEb_se
+nj_FTEb_mean
+nj_FTEb_se
+diff_FTEb_mean
+diff_FTEb_se
+```
+
+```{r}
+# set FTE of stores that are temporarily closed to 0
+fastfood[,"FTE2t"] = fastfood$FTE2
+fastfood$FTE2t[fastfood$status2 == 2 | fastfood$status2 == 4 | fastfood$status2 == 5] = 0
+# Add another change in FTE to 'fastfood'
+# FTEt = FTE2t - FTE
+fastfood[,"FTEt"] = fastfood$FTE2t - fastfood$FTE
+
+# Table 3: First 3 columns (from left to right)
+# 5th row mean
+pa_FTEt_mean = mean(fastfood$FTEt[fastfood$state == 0],na.rm=T ) 
+nj_FTEt_mean = mean(fastfood$FTEt[fastfood$state == 1],na.rm=T ) 
+diff_FTEt_mean = nj_FTEt_mean - pa_FTEt_mean
+# 5th row s.e.
+pa_FTEt_se = stderr(fastfood$FTEt[fastfood$state == 0])
+nj_FTEt_se = stderr(fastfood$FTEt[fastfood$state == 1])
+diff_FTEt_se = sqrt(pa_FTEt_se^2 + nj_FTEt_se^2)
+# Print means
+pa_FTEt_mean
+pa_FTEt_se
+nj_FTEt_mean
+nj_FTEt_se
+diff_FTEt_mean
+diff_FTEt_se
+```
+
+```{r}
+# Table 3: 4th - 6th columns (from left to right)
+nj = subset(fastfood, state == 1)
+# create dummy var for wage_st categories
+nj[,"wage"] = nj$wage_st
+nj$wage[nj$wage_st == 4.25] = 1
+nj$wage[nj$wage_st > 4.25 & nj$wage_st < 5.00] = 2
+nj$wage[nj$wage_st >= 5.00 ] = 3
+# 1st row means
+low_FTE_mean = mean(nj$FTE[nj$wage == 1],na.rm=T)
+mid_FTE_mean = mean(nj$FTE[nj$wage == 2],na.rm=T)
+high_FTE_mean = mean(nj$FTE[nj$wage == 3],na.rm=T)
+# 1st row s.e. 
+low_FTE_se = stderr(nj$FTE[nj$wage == 1])
+mid_FTE_se = stderr(nj$FTE[nj$wage == 2])
+high_FTE_se = stderr(nj$FTE[nj$wage == 3])
+# Print means and s.e. 
+low_FTE_mean
+low_FTE_se
+mid_FTE_mean
+mid_FTE_se 
+high_FTE_mean
+high_FTE_se
+```
+
+```{r}
+# Table 3: 7th - 8th columns (from left to right)
+# 1st row means and s.e.
+lh_FTE_mean = low_FTE_mean - high_FTE_mean
+mh_FTE_mean = mid_FTE_mean - high_FTE_mean
+lh_FTE_se = sqrt(low_FTE_se^2 + high_FTE_se^2)
+mh_FTE_se = sqrt(mid_FTE_se^2 + high_FTE_se^2)
+# Print means and s.e. 
+lh_FTE_mean
+lh_FTE_se
+mh_FTE_mean
+mh_FTE_se
+```
+
+```{r}
+# Table 3: 4th - 6th columns (from left to right)
+# 2nd row means
+low_FTE2_mean = mean(nj$FTE2[nj$wage == 1],na.rm=T)
+mid_FTE2_mean = mean(nj$FTE2[nj$wage == 2],na.rm=T)
+high_FTE2_mean = mean(nj$FTE2[nj$wage == 3],na.rm=T)
+# 2nd row s.e. 
+low_FTE2_se = stderr(nj$FTE2[nj$wage == 1])
+mid_FTE2_se = stderr(nj$FTE2[nj$wage == 2])
+high_FTE2_se = stderr(nj$FTE2[nj$wage == 3])
+# Print means and s.e. 
+low_FTE2_mean
+low_FTE2_se
+mid_FTE2_mean
+mid_FTE2_se
+high_FTE2_mean
+high_FTE2_se
+```
+
+```{r}
+# Table 3: 7th - 8th columns (from left to right)
+# end row means and s.e.
+lh_FTE2_mean = low_FTE2_mean - high_FTE2_mean
+mh_FTE2_mean = mid_FTE2_mean - high_FTE2_mean
+lh_FTE2_se = sqrt(low_FTE2_se^2 + high_FTE2_se^2)
+mh_FTE2_se = sqrt(mid_FTE2_se^2 + high_FTE2_se^2)
+# Print means and s.e. 
+lh_FTE2_mean
+lh_FTE2_se
+mh_FTE2_mean
+mh_FTE2_se
+```
+
+```{r}
+# Table 3: 4th - 6th columns (from left to right)
+# 3rd row means and s.e. 
+low_FTEc_mean = low_FTE2_mean - low_FTE_mean
+mid_FTEc_mean = mid_FTE2_mean - mid_FTE_mean
+high_FTEc_mean = high_FTE2_mean - high_FTE_mean
+low_FTEc_se = sqrt(low_FTE_se^2 + low_FTE2_se^2)
+mid_FTEc_se = sqrt(mid_FTE_se^2 + mid_FTE2_se^2)
+high_FTEc_se = sqrt(high_FTE_se^2 + high_FTE2_se^2)
+# Print means and s.e.
+low_FTEc_mean
+low_FTEc_se 
+mid_FTEc_mean
+mid_FTEc_se
+high_FTEc_mean
+high_FTEc_se
+```
+```{r}
+# Table 3: 7th - 8th columns (from left to right)
+# 3rd row means and s.e.
+lh_FTEc_mean = low_FTEc_mean - high_FTEc_mean
+mh_FTEc_mean = mid_FTEc_mean - high_FTEc_mean
+lh_FTEc_se = sqrt(low_FTEc_se^2 + high_FTEc_se^2)
+mh_FTEc_se = sqrt(mid_FTEc_se^2 + high_FTEc_se^2)
+# Print means and s.e.
+lh_FTEc_mean
+lh_FTEc_se
+mh_FTEc_mean
+mh_FTEc_se
+```
+
+```{r}
+# Table 3: 4th - 6th columns (from left to right)
+# 4th row means
+low_FTEb_mean = mean(nj$FTEb[nj$wage == 1],na.rm=T)
+mid_FTEb_mean = mean(nj$FTEb[nj$wage == 2],na.rm=T)
+high_FTEb_mean = mean(nj$FTEb[nj$wage == 3],na.rm=T)
+# 4th row s.e. 
+low_FTEb_se = stderr(nj$FTEb[nj$wage == 1])
+mid_FTEb_se = stderr(nj$FTEb[nj$wage == 2])
+high_FTEb_se = stderr(nj$FTEb[nj$wage == 3])
+# Print means and s.e.
+low_FTEb_mean
+low_FTEb_se
+mid_FTEb_mean
+mid_FTEb_se
+high_FTEb_mean
+high_FTEb_se
+```
+
+```{r}
+# Table 3: 7th - 8th columns (from left to right)
+# 4th row means
+lh_FTEb_mean = low_FTEb_mean - high_FTEb_mean
+mh_FTEb_mean = mid_FTEb_mean - high_FTEb_mean
+lh_FTEb_se = sqrt(low_FTEb_se^2 + high_FTEb_se^2)
+mh_FTEb_se = sqrt(mid_FTEb_se^2 + high_FTEb_se^2)
+# Print means and s.e.
+lh_FTEb_mean
+lh_FTEb_se
+mh_FTEb_mean
+mh_FTEb_se
+```
+
+```{r}
+# Table 3: 4th - 6th columns (from left to right)
+# 5th row means
+low_FTEt_mean = mean(nj$FTEt[nj$wage == 1],na.rm=T)
+mid_FTEt_mean = mean(nj$FTEt[nj$wage == 2],na.rm=T)
+high_FTEt_mean = mean(nj$FTEt[nj$wage == 3],na.rm=T)
+# 5th row s.e. 
+low_FTEt_se = stderr(nj$FTEt[nj$wage == 1])
+mid_FTEt_se = stderr(nj$FTEt[nj$wage == 2])
+high_FTEt_se = stderr(nj$FTEt[nj$wage == 3])
+# Print means and s.e.
+low_FTEt_mean
+low_FTEt_se
+mid_FTEt_mean
+mid_FTEt_se
+high_FTEt_mean
+high_FTEt_se
+```
+
+```{r}
+# Table 3: 7th - 8th columns (from left to right)
+# 5th row means
+lh_FTEt_mean = low_FTEt_mean - high_FTEt_mean
+mh_FTEt_mean = mid_FTEt_mean - high_FTEt_mean
+lh_FTEt_se = sqrt(low_FTEt_se^2 + high_FTEt_se^2)
+mh_FTEt_se = sqrt(mid_FTEt_se^2 + high_FTEt_se^2)
+# Print means and s.e.
+lh_FTEt_mean
+lh_FTEt_se
+mh_FTEt_mean
+mh_FTEt_se
+```
+
+```{r}
+# create table 1 
+variable = c("FTEmean","FTEse","FTE2mean","FTE2se","ChangeInFTEmean","ChangeInFTEse","ChangeInFTEmean,balanced","ChangeInFTEse,balanced","ChangeInFTEmean, temporarily stores = O","ChangeInFTEse, temporarily stores = O")
+PA = c(pa_FTE_mean,pa_FTE_se,pa_FTE2_mean,pa_FTE2_se,pa_FTEc_mean,pa_FTEc_se,pa_FTEb_mean,pa_FTEb_se,pa_FTEt_mean,pa_FTEt_se)
+NJ = c(nj_FTE_mean,nj_FTE_se,nj_FTE2_mean,nj_FTE2_se,nj_FTEc_mean,nj_FTEc_se,nj_FTEb_mean,nj_FTEb_se,nj_FTEt_mean,nj_FTEt_se)
+DifferenceNJ_PA = c(diff_FTE_mean,diff_FTE_se,diff_FTE2_mean,diff_FTE2_se,diff_FTEc_mean,diff_FTEc_se,diff_FTEb_mean,diff_FTEb_se,diff_FTEt_mean,diff_FTEt_se)
+wage1 = c(low_FTE_mean,low_FTE_se,low_FTE2_mean,low_FTE2_se,low_FTEc_mean,low_FTEc_se,low_FTEb_mean,low_FTEb_se,low_FTEt_mean,low_FTEt_se)
+wage2 = c(mid_FTE_mean,mid_FTE_se,mid_FTE2_mean,mid_FTE2_se,mid_FTEc_mean,mid_FTEc_se,mid_FTEb_mean,mid_FTEb_se,mid_FTEt_mean,mid_FTEt_se)
+wage3 = c(high_FTE_mean,high_FTE_se,high_FTE2_mean,high_FTE2_se,high_FTEc_mean,high_FTEc_se,high_FTEb_mean,high_FTEb_se,high_FTEt_mean,high_FTEt_se)
+Low_High = c(lh_FTE_mean,lh_FTE_se,lh_FTE2_mean,lh_FTE2_se,lh_FTEc_mean,lh_FTEc_se,lh_FTEb_mean,lh_FTEb_se,lh_FTEt_mean,lh_FTEt_se)
+Mid_High = c(mh_FTE_mean,mh_FTE_se,mh_FTE2_mean,mh_FTE2_se,mh_FTEc_mean,mh_FTEc_se,mh_FTEb_mean,mh_FTEb_se,mh_FTEt_mean,mh_FTEt_se)
+table3 = data.frame(variable,PA,NJ,DifferenceNJ_PA,wage1,wage2,wage3,Low_High,Mid_High)
+table3
+```
+
+```{r}
+# Table 4
+# First we select the data for analysis
+  vars = c("FTE","FTE2","state","chain","co_owned","wage_st","wage_st2","southj","centralj","northj","pa1","pa2","status2")
+  fastfood2 = fastfood[vars]
+  fastfood2$wage_st2[fastfood2$status2 == 3] = -9999 #keep those closed permanently
+  fastfood2 = na.omit(fastfood2) 
+# construct dummies for different chain stores 
+  fastfood2[,"bk"] = 0
+  fastfood2$bk[fastfood2$chain == 1] = 1
+  fastfood2[,"kfc"] = 0
+  fastfood2$kfc[fastfood2$chain == 2] = 1
+  fastfood2[,"rr"] = 0
+  fastfood2$rr[fastfood2$chain == 3] = 1
+# construct GAP
+  fastfood2[,"gap"] = 0
+  fastfood2[,"prop"] = (5.05 - fastfood2$wage_st) / fastfood2$wage_st
+  fastfood2$gap[fastfood2$state == 1 & fastfood2$wage_st < 5.05] = fastfood2$prop[fastfood2$state == 1 & fastfood2$wage_st < 5.05]
+# Model(1)/ col1
+  fit1 <- lm((FTE2-FTE) ~ 
+               state, 
+             data = fastfood2)
+# Model(2)/ col2
+  fit2 <- lm((FTE2-FTE) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood2)
+# Model(3)/ col3
+  fit3 <- lm((FTE2-FTE) ~ 
+               gap, 
+             data = fastfood2)  
+# Model(4)/ col4
+  fit4 <- lm((FTE2-FTE) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood2)  
+# Model(5)/ col5
+  fit5 <- lm((FTE2-FTE) ~ 
+               gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1,
+             data = fastfood2)   
+# Summarize regression
+  summary(fit1)
+  summary(fit2)
+  summary(fit3)
+  summary(fit4)
+  summary(fit5)
+# calculate prob value for controls 
+  anova(fit1, fit2)
+  anova(fit3, fit4)
+  anova(fit3, fit5)
+```
+```{r}
+# Table 5  
+# get new datafram 
+   vars2 = c("nmgrs","empft", "emppt","nmgrs2","empft2", "emppt2","FTE","FTE2","FTE2t" ,"state","chain","co_owned","wage_st","wage_st2","southj","centralj","northj","shore","pa1","pa2","status2","ncalls", "date2")
+  fastfood3 = fastfood[vars2]
+  fastfood3$wage_st2[fastfood3$status2 == 3] = -9999 #keep those closed permanently
+  fastfood3 = na.omit(fastfood3) 
+# construct function for percentage calculation
+  perc <- function (x, na.rm=T) {
+  (x - fastfood3$FTE)*2/(x + fastfood3$FTE)
+  }
+# construct GAP and chains 
+  fastfood3[,"gap"] = 0
+  fastfood3[,"prop"] = (5.05 - fastfood3$wage_st) / fastfood3$wage_st
+  fastfood3$gap[fastfood3$state == 1 & fastfood3$wage_st < 5.05] = fastfood3$prop[fastfood3$state == 1 & fastfood3$wage_st < 5.05]
+  fastfood3[,"bk"] = fastfood2$bk
+  fastfood3[,"kfc"] = fastfood2$kfc
+  fastfood3[,"rr"] = fastfood2$rr
+# construct specifications, both change and percentage change 
+  # 1. Base --> fastfood$FTE2
+    fastfood3[,"FTE2_perc"] = perc(fastfood3$FTE2)
+    fastfood3$FTE2_perc[fastfood3$status2 == 3] = - 1 #closed store empt % change set to -1
+  # 2. treat temporary closed stores = 0 --> fastfood$FTE2t
+    fastfood3[,"FTE2t_perc"] = perc(fastfood3$FTE2t) 
+    fastfood3$FTE2t_perc[fastfood3$status2 == 3] = - 1
+  # 3. exlude mangaers in employment 
+    fastfood3[,"FTEm"] = fastfood3$empft + (0.5 * fastfood3$emppt)
+    fastfood3[,"FTE2m"] = fastfood3$empft2 + (0.5 * fastfood3$emppt2)
+    fastfood3[,"FTE2m_perc"] = (fastfood3$FTE2m - fastfood3$FTEm)*2/(fastfood3$FTE2m + fastfood3$FTEm)
+    fastfood3$FTE2m_perc[fastfood3$status2 == 3] = - 1
+  # 4. part-time = 0.4*full-time 
+    fastfood3[,"FTEp1"] = fastfood3$nmgrs + fastfood3$empft + (0.4 * fastfood3$emppt)
+    fastfood3[,"FTE2p1"] = fastfood3$nmgrs2 + fastfood3$empft2 + (0.4 * fastfood3$emppt2)
+    fastfood3[,"FTE2p1_perc"] = (fastfood3$FTE2p1 - fastfood3$FTEp1)*2/(fastfood3$FTE2p1 + fastfood3$FTEp1)
+    fastfood3$FTE2p1_perc[fastfood3$status2 == 3] = - 1
+  # 5. part-time = 0.6*full-time 
+    fastfood3[,"FTEp2"] = fastfood3$nmgrs + fastfood3$empft + (0.6 * fastfood3$emppt)
+    fastfood3[,"FTE2p2"] = fastfood3$nmgrs2 + fastfood3$empft2 + (0.6 * fastfood3$emppt2)
+    fastfood3[,"FTE2p2_perc"] = (fastfood3$FTE2p2 - fastfood3$FTEp2)*2/(fastfood3$FTE2p2 + fastfood3$FTEp2)
+    fastfood3$FTE2p2_perc[fastfood3$status2 == 3] = - 1
+  # 6. exclude stores in NJ shore area 
+    fastfood3_noshore = subset(fastfood3, shore == 0)
+  # 7. add controls for wave 2 interview date 
+    fastfood3[,"week1"] = 0
+    fastfood3[,"week2"] = 0
+    fastfood3[,"week3"] = 0
+    fastfood3$week1[(fastfood3$date2 > 110492 & fastfood3$date2 < 111092) | (fastfood3$date2 > 120892 & fastfood3$date2 < 111592) ] = 1
+    fastfood3$week2[(fastfood3$date2 > 110992 & fastfood3$date2 < 111792) | (fastfood3$date2 > 121492 & fastfood3$date2 < 122292) ] = 1
+    fastfood3$week2[(fastfood3$date2 > 111692 & fastfood3$date2 < 112492) | (fastfood3$date2 > 122192 & fastfood3$date2 <= 123192) ] = 1
+  # 8. exclude stores called more than twice in w1 
+    fastfood3_notwice = subset(fastfood3, ncalls < 3)
+  # 9. weight by initial empt 
+  # 10 & 11. stores in twons around Newark and Camden unable to identify due to lack of zipcode data
+```
+
+
+```{r}
+# Table 5 - regression 
+# speci 1/ col 1 
+  spe11 <- lm((FTE2-FTE) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe11)
+# speci 1/ col 2 
+  spe12 <- lm((FTE2-FTE) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe12)
+# speci 1/ col 3
+  spe13 <- lm((FTE2_perc) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe13)
+# speci 1/ col 4
+  spe14 <- lm((FTE2_perc) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe14)
+``` 
+
+```{r}
+# Table 5 - regression 
+# speci 2/ col 1 
+  spe21 <- lm((FTE2t-FTE) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe21)
+# speci 2/ col 2 
+  spe22 <- lm((FTE2t-FTE) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe22)
+# speci 2/ col 3
+  spe23 <- lm((FTE2t_perc) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe23)
+# speci 2/ col 4
+  spe24 <- lm((FTE2t_perc) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe24)
+```
+
+```{r}
+# Table 5 - regression 
+# speci 3/ col 1 
+  spe31 <- lm((FTE2m-FTEm) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe31)
+# speci 3/ col 2 
+  spe32 <- lm((FTE2m-FTEm) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe32)
+# speci 3/ col 3
+  spe33 <- lm((FTE2m_perc) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe33)
+# speci 3/ col 4
+  spe34 <- lm((FTE2m_perc) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe34)
+```
+```{r}
+# Table 5 - regression 
+# speci 4/ col 1 
+  spe41 <- lm((FTE2p1-FTEp1) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe41)
+# speci 4/ col 2 
+  spe42 <- lm((FTE2p1-FTEp1) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe42)
+# speci 4/ col 3
+  spe43 <- lm((FTE2p1_perc) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe43)
+# speci 4/ col 4
+  spe44 <- lm((FTE2p1_perc) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe44)
+```
+```{r}
+# Table 5 - regression 
+# speci 5/ col 1 
+  spe51 <- lm((FTE2p2-FTEp2) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe51)
+# speci 5/ col 2 
+  spe52 <- lm((FTE2p2-FTEp2) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe52)
+# speci 5/ col 3
+  spe53 <- lm((FTE2p2_perc) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe53)
+# speci 5/ col 4
+  spe54 <- lm((FTE2p2_perc) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3)
+  summary(spe54)
+```
+
+```{r}
+# Table 5 - regression 
+# speci 6/ col 1 
+  spe61 <- lm((FTE2-FTE) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3_noshore)
+  summary(spe61)
+# speci 6/ col 2 
+  spe62 <- lm((FTE2-FTE) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3_noshore)
+  summary(spe62)
+# speci 6/ col 3
+  spe63 <- lm((FTE2_perc) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3_noshore)
+  summary(spe63)
+# speci 6/ col 4
+  spe64 <- lm((FTE2_perc) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3_noshore)
+  summary(spe64)
+``` 
+```{r}
+# Table 5 - regression 
+# speci 7/ col 1 
+  spe71 <- lm((FTE2-FTE) ~ 
+               state + bk + kfc + rr + co_owned + week1 + week2 + week3, 
+             data = fastfood3)
+  summary(spe71)
+# speci 7/ col 2 
+  spe72 <- lm((FTE2-FTE) ~ 
+               gap + bk + kfc + rr + co_owned + week1 + week2 + week3, 
+             data = fastfood3)
+  summary(spe72)
+# speci 7/ col 3
+  spe73 <- lm((FTE2_perc) ~ 
+               state + bk + kfc + rr + co_owned + week1 + week2 + week3, 
+             data = fastfood3)
+  summary(spe73)
+# speci 7/ col 4
+  spe74 <- lm((FTE2_perc) ~ 
+               gap + bk + kfc + rr + co_owned + week1 + week2 + week3, 
+             data = fastfood3)
+  summary(spe74)
+```
+
+```{r}
+# Table 5 - regression 
+# speci 8/ col 1 
+  spe81 <- lm((FTE2-FTE) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3_notwice)
+  summary(spe81)
+# speci 8/ col 2 
+  spe82 <- lm((FTE2-FTE) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3_notwice)
+  summary(spe82)
+# speci 8/ col 3
+  spe83 <- lm((FTE2_perc) ~ 
+               state + bk + kfc + rr + co_owned, 
+             data = fastfood3_notwice)
+  summary(spe83)
+# speci 8/ col 4
+  spe84 <- lm((FTE2_perc) ~ 
+               gap + bk + kfc + rr + co_owned, 
+             data = fastfood3_notwice)
+  summary(spe84)
+```
+
+```{r}
+# Table 5 - regression 
+# speci 9/ col 3 
+  spe93 <- lm((FTE2_perc) ~ 
+               state + bk + kfc + rr + co_owned, weights=fastfood3$FTE,
+             data = fastfood3)
+  summary(spe93)
+# speci 9/ col 4
+  spe94 <- lm((FTE2_perc) ~ 
+               gap + bk + kfc + rr + co_owned, weights=fastfood3$FTE,
+             data = fastfood3)
+  summary(spe94)
+```
+
+```{r}
+# Table 5 - regression 
+# calculate new GAP for pa 
+  fastfood3_pa = subset(fastfood3, state == 0)
+  fastfood3_pa[,"gap1"] = 0
+  fastfood3_pa$gap1[fastfood3_pa$wage_st < 5.05] = fastfood3_pa$prop[fastfood3_pa$wage_st < 5.05]
+# speci 12/ col 2 
+  spe122 <- lm((FTE2-FTE) ~ 
+               gap1 + bk + kfc + rr + co_owned, 
+             data = fastfood3_pa)
+  summary(spe122)
+# speci 12/ col 4
+  spe124 <- lm((FTE2_perc) ~ 
+               gap1 + bk + kfc + rr + co_owned, 
+             data = fastfood3_pa)
+  summary(spe124)
+```
+
+```{r}
+# Table 6  
+  # construct dummies for different chain stores 
+  fastfood[,"bk"] = 0
+  fastfood$bk[fastfood$chain == 1] = 1
+  fastfood[,"kfc"] = 0
+  fastfood$kfc[fastfood$chain == 2] = 1
+  fastfood[,"rr"] = 0
+  fastfood$rr[fastfood$chain == 3] = 1
+# construct GAP and chains 
+  fastfood[,"gap"] = (5.05 - fastfood$wage_st) / fastfood$wage_st
+  fastfood$gap[fastfood$state == 0 | fastfood$wage_st >= 5.05] = 0
+# store characteristics 
+  # 1. fraction full time worker
+  fastfood[,"ft_perc"] = (fastfood$empft2/fastfood$FTE2 - fastfood$empft/fastfood$FTE)*100
+  # 2. number of hours open per weekday
+  fastfood[,"hrsopen_c"] = fastfood$hrsopen2 - fastfood$hrsopen
+  # 3. number of cash registers
+  fastfood[,"nregs_c"] = fastfood$nregs2 - fastfood$nregs
+  # 4. cash reg oepn at 11
+  fastfood[,"nregs11_c"] = fastfood$nregs112 - fastfood$nregs11
+ 
+```
+
+```{r}
+# Table 6 row 1
+# col 1-3
+  ft_nj_mean = mean(fastfood$ft_perc[fastfood$state == 1], na.rm=T)
+  ft_pa_mean = mean(fastfood$ft_perc[fastfood$state == 0], na.rm=T)
+  ft_diff_mean = ft_nj_mean - ft_pa_mean 
+  ft_nj_se = stderr(fastfood$ft_perc[fastfood$state == 1])
+  ft_pa_se = stderr(fastfood$ft_perc[fastfood$state == 0])
+  ft_diff_se = sqrt(ft_nj_se^2 + ft_pa_se^2)
+
+# Print results
+ft_nj_mean
+ft_nj_se
+ft_pa_mean
+ft_pa_se
+ft_diff_mean
+ft_diff_se
+
+# col 4-6
+  # char 1/ col 1 
+    char11 <- lm((ft_perc) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char11)
+  # char 1/ col 2 
+    char12 <- lm((ft_perc) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char12)
+  # char 1/ col 3
+    char13 <- lm((ft_perc) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfood)
+    summary(char13)
+```
+
+```{r}
+# Table 6 row2
+# col 1-3
+  hrs_nj_mean = mean(fastfood$hrsopen_c[fastfood$state == 1], na.rm=T)
+  hrs_pa_mean = mean(fastfood$hrsopen_c[fastfood$state == 0], na.rm=T)
+  hrs_diff_mean = hrs_nj_mean - hrs_pa_mean 
+  hrs_nj_se = stderr(fastfood$hrsopen_c[fastfood$state == 1])
+  hrs_pa_se = stderr(fastfood$hrsopen_c[fastfood$state == 0])
+  hrs_diff_se = sqrt(hrs_nj_se^2 + hrs_pa_se^2)
+
+# Print results
+hrs_nj_mean
+hrs_nj_se
+hrs_pa_mean
+hrs_pa_se
+hrs_diff_mean
+hrs_diff_se
+
+# col 4-6
+  # char 2/ col 1 
+    char21 <- lm((hrsopen_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char21)
+  # char 2/ col 2 
+    char22 <- lm((hrsopen_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char22)
+  # char 2/ col 3
+    char23 <- lm((hrsopen_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfood)
+    summary(char23)
+```
+```{r}
+# Table 6 row3
+# col 1-3
+  nregs_nj_mean = mean(fastfood$nregs_c[fastfood$state == 1], na.rm=T)
+  nregs_pa_mean = mean(fastfood$nregs_c[fastfood$state == 0], na.rm=T)
+  nregs_diff_mean = nregs_nj_mean - nregs_pa_mean 
+  nregs_nj_se = stderr(fastfood$nregs_c[fastfood$state == 1])
+  nregs_pa_se = stderr(fastfood$nregs_c[fastfood$state == 0])
+  nregs_diff_se = sqrt(nregs_nj_se^2 + nregs_pa_se^2)
+
+# Print results
+nregs_nj_mean
+nregs_nj_se
+nregs_pa_mean
+nregs_pa_se
+nregs_diff_mean
+nregs_diff_se
+
+# col 4-6
+  # char 3/ col 1 
+    char31 <- lm((nregs_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char31)
+  # char 3/ col 2 
+    char32 <- lm((nregs_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char32)
+  # char 3/ col 3
+    char33 <- lm((nregs_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfood)
+    summary(char33)
+```
+```{r}
+# Table 6 row4
+# col 1-3
+  nregs11_nj_mean = mean(fastfood$nregs11_c[fastfood$state == 1], na.rm=T)
+  nregs11_pa_mean = mean(fastfood$nregs11_c[fastfood$state == 0], na.rm=T)
+  nregs11_diff_mean = nregs11_nj_mean - nregs11_pa_mean 
+  nregs11_nj_se = stderr(fastfood$nregs11_c[fastfood$state == 1])
+  nregs11_pa_se = stderr(fastfood$nregs11_c[fastfood$state == 0])
+  nregs11_diff_se = sqrt(nregs11_nj_se^2 + nregs11_pa_se^2)
+
+# Print results
+nregs11_nj_mean
+nregs11_nj_se
+nregs11_pa_mean
+nregs11_pa_se
+nregs11_diff_mean
+nregs11_diff_se
+
+# col 4-6
+  # char 4/ col 1 
+    char41 <- lm((nregs11_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char41)
+  # char 4/ col 2 
+    char42 <- lm((nregs11_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char42)
+  # char 4/ col 3
+    char43 <- lm((nregs11_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfood)
+    summary(char43)
+```
+```{r}
+#Table 6
+# Employee meal porgrams 
+  meal = c("meals2","meals","state","gap","bk","kfc","rr","co_owned","southj","centralj","northj","pa1","pa2")
+  fastfoodm = fastfood[meal]
+  fastfoodm = na.omit(fastfoodm) #393 observations
+  # 5. low price
+    fastfoodm[,"low"] = 0
+    fastfoodm[,"low2"] = 0
+    fastfoodm$low[ fastfoodm$meals == 2] = 1
+    fastfoodm$low2[ fastfoodm$meals2 == 2] = 1
+    fastfoodm[,"low_c"] = (fastfoodm$low2 - fastfoodm$low)*100
+  # 6. free 
+    fastfoodm[,"free"] = 0
+    fastfoodm[,"free2"] = 0
+    fastfoodm$free[ fastfoodm$meals == 1] = 1
+    fastfoodm$free2[ fastfoodm$meals2 == 1] = 1
+    fastfoodm[,"free_c"] = (fastfoodm$free2 - fastfoodm$free)*100
+  # 7. combo
+    fastfoodm[,"combo"] = 0
+    fastfoodm[,"combo2"] = 0
+    fastfoodm$combo[ fastfoodm$meals == 3] = 1
+    fastfoodm$combo2[ fastfoodm$meals2 == 3] = 1
+    fastfoodm[,"combo_c"] = (fastfoodm$combo2 - fastfoodm$combo)*100
+
+# create state subset 
+  meal_nj = subset(fastfoodm, state == 1)
+  meal_pa = subset(fastfoodm, state == 0)
+```
+
+```{r}
+# Table 6 row5
+# col 1-3
+  l_nj_mean = mean(meal_nj$low_c)
+  l_pa_mean = mean(meal_pa$low_c)
+  l_diff_mean = l_nj_mean - l_pa_mean 
+  l_nj_se = stderr(meal_nj$low_c)
+  l_pa_se = stderr(meal_pa$low_c)
+  l_diff_se = sqrt(l_nj_se^2 + l_pa_se^2)
+
+# Print results
+l_nj_mean
+l_nj_se
+l_pa_mean
+l_pa_se
+l_diff_mean
+l_diff_se
+
+# col 4-6
+  # char 5/ col 1 
+    char51 <- lm((low_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfoodm)
+    summary(char51)
+  # char 5/ col 2 
+    char52 <- lm((low_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfoodm)
+    summary(char52)
+  # char 5/ col 3
+    char53 <- lm((low_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfoodm)
+    summary(char53)
+```
+
+```{r}
+# Table 6 row6
+# col 1-3
+  f_nj_mean = mean(meal_nj$free_c)
+  f_pa_mean = mean(meal_pa$free_c)
+  f_diff_mean = f_nj_mean - f_pa_mean 
+  f_nj_se = stderr(meal_nj$free_c)
+  f_pa_se = stderr(meal_pa$free_c)
+  f_diff_se = sqrt(f_nj_se^2 + f_pa_se^2)
+
+# Print results
+f_nj_mean
+f_nj_se
+f_pa_mean
+f_pa_se
+f_diff_mean
+f_diff_se
+
+# col 4-6
+  # char 6/ col 1 
+    char61 <- lm((free_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfoodm)
+    summary(char61)
+  # char 6/ col 2 
+    char62 <- lm((free_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfoodm)
+    summary(char62)
+  # char 6/ col 3
+    char63 <- lm((free_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfoodm)
+    summary(char63)
+```
+```{r}
+# Table 6 row 7
+# col 1-3
+  c_nj_mean = mean(meal_nj$combo_c)
+  c_pa_mean = mean(meal_pa$combo_c)
+  c_diff_mean = c_nj_mean - c_pa_mean 
+  c_nj_se = stderr(meal_nj$combo_c)
+  c_pa_se = stderr(meal_pa$combo_c)
+  c_diff_se = sqrt(c_nj_se^2 + c_pa_se^2)
+
+# Print results
+c_nj_mean
+c_nj_se
+c_pa_mean
+c_pa_se
+c_diff_mean
+c_diff_se
+
+# col 4-6
+  # char 7/ col 1 
+    char71 <- lm((combo_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfoodm)
+    summary(char71)
+  # char 7/ col 2 
+    char72 <- lm((combo_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfoodm)
+    summary(char72)
+  # char 7/ col 3
+    char73 <- lm((combo_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfoodm)
+    summary(char73)
+```
+
+```{r}
+# Table 6 
+# Wage profile 
+  # 8. time to first raise in weeks
+    fastfood[,"inctime_c"] = (fastfood$inctime2 - fastfood$inctime)
+  # 9. usual amount of first raise in cents
+    fastfood[,"firstinc_c"] = (fastfood$firstin2 - fastfood$firstinc)
+  # 10. slope (*25 to adjust for cent per weeek)
+    fastfood[,"slope_c"] = (fastfood$firstin2/fastfood$inctime2 - fastfood$firstinc/fastfood$inctime)*25
+```
+
+```{r}
+# Table 6 row 8
+# col 1-3
+  inctime_nj_mean = mean(fastfood$inctime_c[fastfood$state == 1], na.rm=T)
+  inctime_pa_mean = mean(fastfood$inctime_c[fastfood$state == 0], na.rm=T)
+  inctime_diff_mean = inctime_nj_mean - inctime_pa_mean 
+  inctime_nj_se = stderr(fastfood$inctime_c[fastfood$state == 1])
+  inctime_pa_se = stderr(fastfood$inctime_c[fastfood$state == 0])
+  inctime_diff_se = sqrt(inctime_nj_se^2 + inctime_pa_se^2)
+
+# Print results
+inctime_nj_mean
+inctime_nj_se
+inctime_pa_mean
+inctime_pa_se
+inctime_diff_mean
+inctime_diff_se
+
+# col 4-6
+  # char 8/ col 1 
+    char81 <- lm((inctime_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char81)
+  # char 8/ col 2 
+    char82 <- lm((inctime_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char22)
+  # char 8/ col 3
+    char83 <- lm((inctime_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfood)
+    summary(char83)
+```
+
+```{r}
+# Table 6 row 9
+# col 1-3
+  first_nj_mean = mean(fastfood$firstinc_c[fastfood$state == 1], na.rm=T)
+  first_pa_mean = mean(fastfood$firstinc_c[fastfood$state == 0], na.rm=T)
+  first_diff_mean = first_nj_mean - first_pa_mean 
+  first_nj_se = stderr(fastfood$firstinc_c[fastfood$state == 1])
+  first_pa_se = stderr(fastfood$firstinc_c[fastfood$state == 0])
+  first_diff_se = sqrt(first_nj_se^2 + first_pa_se^2)
+
+# Print results
+first_nj_mean
+first_nj_se
+first_pa_mean
+first_pa_se
+first_diff_mean
+first_diff_se
+
+# col 4-6
+  # char 9/ col 1 
+    char91 <- lm((firstinc_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char91)
+  # char 9/ col 2 
+    char92 <- lm((firstinc_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char92)
+  # char 9/ col 3
+    char93 <- lm((firstinc_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfood)
+    summary(char93)
+```
+
+```{r}
+# Table 6 row 10
+# col 1-3
+  s_nj_mean = mean(fastfood$slope_c[fastfood$state == 1], na.rm=T)
+  s_pa_mean = mean(fastfood$slope_c[fastfood$state == 0], na.rm=T)
+  s_diff_mean = s_nj_mean - s_pa_mean 
+  s_nj_se = stderr(fastfood$slope_c[fastfood$state == 1])
+  s_pa_se = stderr(fastfood$slope_c[fastfood$state == 0])
+  s_diff_se = sqrt(s_nj_se^2 + s_pa_se^2)
+
+# Print results
+s_nj_mean
+s_nj_se
+s_pa_mean
+s_pa_se
+s_diff_mean
+s_diff_se
+
+# col 4-6
+  # char 10/ col 1 
+    char101 <- lm((slope_c) ~ 
+                 state + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char101)
+  # char 10/ col 2 
+    char102 <- lm((slope_c) ~ 
+                 gap + bk + kfc + rr + co_owned, 
+               data = fastfood)
+    summary(char102)
+  # char 10/ col 3
+    char103 <- lm((slope_c) ~ 
+                 gap + bk + kfc + rr + co_owned + southj + centralj + northj + pa1 + pa2, 
+               data = fastfood)
+    summary(char103)
+```
+
