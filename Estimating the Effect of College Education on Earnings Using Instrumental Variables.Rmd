@@ -1,0 +1,469 @@
+---
+title: "Estimating the Effect of College Education on Earnings Using Instrumental Variables"
+output: html_notebook
+---
+# Purpose: UNC ECON571 Final Paper
+# Author: Zhiying Fan 5/1/2019
+# This file is dependent on "cepr_march_2016.dta" and "state.xls"
+
+```{r}
+library(haven)
+library(dplyr)
+library(car)
+library(sem)
+library(AER)
+cepr_march_2016 <- read_dta("cepr_march_2016.dta")
+#View(cepr_march_2016)
+```
+
+```{r}
+# extract data with individuals age between 25-30, full-time employed in the past year, either have a college or hs degree 
+  variable = c("age","female","wbho","ftptlyr","empl","state","educ","incp_wag","incf_all","csr","mig")
+  cepr = cepr_march_2016[variable]
+  cepr1 = subset(cepr, cepr$age <= 30 & cepr$age >= 25 & empl == 1 & ftptlyr == 1)
+  cepr2 = subset(cepr1, educ == 2 | educ == 4)
+```
+
+```{r}
+# set dummies for education, race and gender 
+  cepr2[,"lw"] = log(cepr2$incp_wag)
+  cepr2[,"lf"] = log(cepr2$incf_all)
+  cepr2[,"college"] = 0
+  cepr2$college[cepr2$educ == 4] = 1
+  cepr2[,"white"] = 0
+  cepr2$white[cepr2$wbho == 1] = 1
+  cepr2[,"bla"] = 0
+  cepr2$bla[cepr2$wbho == 2] = 1
+  cepr2[,"male"] = 0
+  cepr2$male[cepr2$female == 0] = 1
+  cepr3 = subset(cepr2, lw > 0)
+  cepr3 = na.omit(cepr3)
+```
+
+```{r}
+library(readxl)
+state <- read_excel("state.xls")
+View(state)
+```
+ 
+```{r}
+cepr3[,"dtuition"] = 0
+cepr3[,"tuition"] = 0
+cepr3[,"stateincome"] = 0
+cepr3[,"school"] = 0
+# csr = 1 live in metropolitan 
+cepr3$csr[cepr3$csr == 2] = 0
+state$tuition = log(state$tuition)
+state$income = log(state$income)
+```
+
+```{r}
+# 11 maine
+cepr3[cepr3$state == 11,c("tuition","dtuition", "stateincome","school")] = state[20,c("tuition","dtuition", "income","school")]
+# 12 new hampshire
+cepr3[cepr3$state == 12,c("tuition","dtuition", "stateincome","school")] = state[30,c("tuition","dtuition", "income","school")]
+# 13 vermont
+cepr3[cepr3$state == 13,c("tuition","dtuition", "stateincome","school")] = state[46,c("tuition","dtuition", "income","school")]
+# 14 massachusett 
+cepr3[cepr3$state == 14,c("tuition","dtuition", "stateincome","school")] = state[22,c("tuition","dtuition", "income","school")]
+# 15 rhode island
+cepr3[cepr3$state == 15,c("tuition","dtuition", "stateincome","school")] = state[40,c("tuition","dtuition", "income","school")]
+# 16 connecticut
+cepr3[cepr3$state == 16,c("tuition","dtuition", "stateincome","school")] = state[7,c("tuition","dtuition", "income","school")]
+# 21 new york 
+cepr3[cepr3$state == 21,c("tuition","dtuition", "stateincome","school")] = state[33,c("tuition","dtuition", "income","school")]
+# 22 new jersey
+cepr3[cepr3$state == 22,c("tuition","dtuition", "stateincome","school")] = state[31,c("tuition","dtuition", "income","school")]
+# 23 pennsylvania 
+cepr3[cepr3$state == 23,c("tuition","dtuition", "stateincome","school")] = state[39,c("tuition","dtuition", "income","school")]
+# 31 ohio
+cepr3[cepr3$state == 31,c("tuition","dtuition", "stateincome","school")] = state[36,c("tuition","dtuition", "income","school")]
+# 32 indiana
+cepr3[cepr3$state == 32,c("tuition","dtuition", "stateincome","school")] = state[15,c("tuition","dtuition", "income","school")]
+# 33 illinois 
+cepr3[cepr3$state == 33,c("tuition","dtuition", "stateincome","school")] = state[14,c("tuition","dtuition", "income","school")]
+# 34 michigan
+cepr3[cepr3$state == 34,c("tuition","dtuition", "stateincome","school")] = state[23,c("tuition","dtuition", "income","school")]
+# 35 wisconsin
+cepr3[cepr3$state == 35,c("tuition","dtuition", "stateincome","school")] = state[50,c("tuition","dtuition", "income","school")]
+# 41 minnesota
+cepr3[cepr3$state == 41,c("tuition","dtuition", "stateincome","school")] = state[24,c("tuition","dtuition", "income","school")]
+# 42 iowa
+cepr3[cepr3$state == 42,c("tuition","dtuition", "stateincome","school")] = state[16,c("tuition","dtuition", "income","school")]
+# 43 misori
+cepr3[cepr3$state == 43,c("tuition","dtuition", "stateincome","school")] = state[26,c("tuition","dtuition", "income","school")]
+# 44 north dakota
+cepr3[cepr3$state == 44,c("tuition","dtuition", "stateincome","school")] = state[35,c("tuition","dtuition", "income","school")]
+# 45 south dakota 
+cepr3[cepr3$state == 45,c("tuition","dtuition", "stateincome","school")] = state[42,c("tuition","dtuition", "income","school")]
+# 46 nebraska 
+cepr3[cepr3$state == 46,c("tuition","dtuition", "stateincome","school")] = state[28,c("tuition","dtuition", "income","school")]
+# 47 kansas
+cepr3[cepr3$state == 47,c("tuition","dtuition", "stateincome","school")] = state[17,c("tuition","dtuition", "income","school")]
+# 51 delaware 
+cepr3[cepr3$state == 51,c("tuition","dtuition", "stateincome","school")] = state[8,c("tuition","dtuition", "income","school")]
+# 52 maryland 
+cepr3[cepr3$state == 52,c("tuition","dtuition", "stateincome","school")] = state[21,c("tuition","dtuition", "income","school")]
+# 53 columbia 
+cepr3[cepr3$state == 53,c("tuition","dtuition", "stateincome","school")] = state[9,c("tuition","dtuition", "income","school")]
+# 54 virginia 
+cepr3[cepr3$state == 54,c("tuition","dtuition", "stateincome","school")] = state[47,c("tuition","dtuition", "income","school")]
+# 55 west virginia 
+cepr3[cepr3$state == 55,c("tuition","dtuition", "stateincome","school")] = state[49,c("tuition","dtuition", "income","school")]
+# 56 north carolina
+cepr3[cepr3$state == 56,c("tuition","dtuition", "stateincome","school")] = state[34,c("tuition","dtuition", "income","school")]
+# 57 south caorlina  
+cepr3[cepr3$state == 57,c("tuition","dtuition", "stateincome","school")] = state[41,c("tuition","dtuition", "income","school")]
+# 58 georgia
+cepr3[cepr3$state == 58,c("tuition","dtuition", "stateincome","school")] = state[11,c("tuition","dtuition", "income","school")]
+# 59 florida
+cepr3[cepr3$state == 59,c("tuition","dtuition", "stateincome","school")] = state[10,c("tuition","dtuition", "income","school")]
+# 61 kentucky
+cepr3[cepr3$state == 61,c("tuition","dtuition", "stateincome","school")] = state[18,c("tuition","dtuition", "income","school")]
+# 62 tennessee
+cepr3[cepr3$state == 62,c("tuition","dtuition", "stateincome","school")] = state[43,c("tuition","dtuition", "income","school")]
+# 63 alabama 
+cepr3[cepr3$state == 63,c("tuition","dtuition", "stateincome","school")] = state[1,c("tuition","dtuition", "income","school")]
+# 64 missisippi 
+cepr3[cepr3$state == 64,c("tuition","dtuition", "stateincome","school")] = state[25,c("tuition","dtuition", "income","school")]
+# 71 arkansas 
+cepr3[cepr3$state == 71,c("tuition","dtuition", "stateincome","school")] = state[4,c("tuition","dtuition", "income","school")]
+# 72 louisiana
+cepr3[cepr3$state == 72,c("tuition","dtuition", "stateincome","school")] = state[19,c("tuition","dtuition", "income","school")]
+# 73 oklahoma 
+cepr3[cepr3$state == 73,c("tuition","dtuition", "stateincome","school")] = state[37,c("tuition","dtuition", "income","school")]
+# 74 texas
+cepr3[cepr3$state == 74,c("tuition","dtuition", "stateincome","school")] = state[44,c("tuition","dtuition", "income","school")]
+# 81 montana
+cepr3[cepr3$state == 81,c("tuition","dtuition", "stateincome","school")] = state[27,c("tuition","dtuition", "income","school")]
+# 82 idaho
+cepr3[cepr3$state == 82,c("tuition","dtuition", "stateincome","school")] = state[13,c("tuition","dtuition", "income","school")]
+# 83 wyoming
+cepr3[cepr3$state == 83,c("tuition","dtuition", "stateincome","school")] = state[51,c("tuition","dtuition", "income","school")]
+# 84 colorado 
+cepr3[cepr3$state == 84,c("tuition","dtuition", "stateincome","school")] = state[6,c("tuition","dtuition", "income","school")]
+# 85 new mexico
+cepr3[cepr3$state == 85,c("tuition","dtuition", "stateincome","school")] = state[32,c("tuition","dtuition", "income","school")]
+# 86 arizona
+cepr3[cepr3$state == 86,c("tuition","dtuition", "stateincome","school")] = state[3,c("tuition","dtuition", "income","school")]
+# 87 utah
+cepr3[cepr3$state == 87,c("tuition","dtuition", "stateincome","school")] = state[45,c("tuition","dtuition", "income","school")]
+# 88 nevada 
+cepr3[cepr3$state == 88,c("tuition","dtuition", "stateincome","school")] = state[29,c("tuition","dtuition", "income","school")]
+# 91 washington 
+cepr3[cepr3$state == 91,c("tuition","dtuition", "stateincome","school")] = state[48,c("tuition","dtuition", "income","school")]
+# 92 oregon
+cepr3[cepr3$state == 92,c("tuition","dtuition", "stateincome","school")] = state[38,c("tuition","dtuition", "income","school")]
+# 93 cali
+cepr3[cepr3$state == 93,c("tuition","dtuition", "stateincome","school")] = state[5,c("tuition","dtuition", "income","school")]
+# 94 alaska
+cepr3[cepr3$state == 94,c("tuition","dtuition", "stateincome","school")] = state[2,c("tuition","dtuition", "income","school")]
+# 95 hawaii 
+cepr3[cepr3$state == 95,c("tuition","dtuition", "stateincome","school")] = state[12,c("tuition","dtuition", "income","school")]
+```
+
+
+```{r}
+  ceprf = subset(cepr3, college == 1)
+  ceprm = subset(cepr3, college == 0)
+  ceprhc = subset(cepr3, school == 1)
+  ceprlc = subset(cepr3, school == 0)
+  ceprlt = subset(cepr3, dtuition == 1)
+  ceprht = subset(cepr3, dtuition == 0)
+```
+
+```{r}
+  se <- function(x, y) {
+  sqrt(var(x)/length(x) + var(y)/length(y))
+  }
+  stderr <- function(x, na.rm=T) {
+    if (na.rm) x <- na.omit(x)
+    sqrt(var(x)/length(x))
+  }
+```
+
+```{r}
+# All
+mean(cepr3$white)
+mean(cepr3$bla)
+mean(cepr3$age)
+mean(cepr3$male)
+mean(cepr3$lf)
+mean(cepr3$stateincome)
+mean(cepr3$csr)
+mean(cepr3$lw)
+```
+
+```{r}
+a1 = mean(ceprf$white)
+a1
+mean(ceprm$white) - a1
+se(ceprf$white,ceprm$white)
+
+a2 = mean(ceprhc$white)
+a2
+mean(ceprlc$white) - a2
+se(ceprhc$white,ceprlc$white)
+
+a3 = mean(ceprlt$white)
+a3
+mean(ceprht$white) - a3
+se(ceprlt$white,ceprht$white)
+```
+
+```{r}
+a1 = mean(ceprf$bla)
+a1
+mean(ceprm$bla) - a1
+se(ceprf$bla,ceprm$bla)
+
+a2 = mean(ceprhc$bla)
+a2
+mean(ceprlc$bla) - a2
+se(ceprhc$bla,ceprlc$bla)
+
+a3 = mean(ceprlt$bla)
+a3
+mean(ceprht$bla) - a3
+se(ceprlt$bla,ceprht$bla)
+```
+ 
+```{r}
+a1 = mean(ceprf$age)
+a1
+mean(ceprm$age) - a1
+se(ceprf$age,ceprm$age)
+
+a2 = mean(ceprhc$age)
+a2
+mean(ceprlc$age) - a2
+se(ceprhc$age,ceprlc$age)
+
+a3 = mean(ceprlt$age)
+a3
+mean(ceprht$age) - a3
+se(ceprlt$age,ceprht$age)
+```
+
+```{r}
+a1 = mean(ceprf$male)
+a1
+mean(ceprm$male) - a1
+se(ceprf$male,ceprm$male)
+
+a2 = mean(ceprhc$male)
+a2
+mean(ceprlc$male) - a2
+se(ceprhc$male,ceprlc$male)
+
+a3 = mean(ceprlt$male)
+a3
+mean(ceprht$male) - a3
+se(ceprlt$male,ceprht$male)
+```
+ 
+```{r}
+a1 = mean(ceprf$lf)
+a1
+mean(ceprm$lf) - a1
+se(ceprf$lf,ceprm$lf)
+
+a2 = mean(ceprhc$lf)
+a2
+mean(ceprlc$lf) - a2
+se(ceprhc$lf,ceprlc$lf)
+
+a3 = mean(ceprlt$lf)
+a3
+mean(ceprht$lf) - a3
+se(ceprlt$lf,ceprht$lf)
+```
+
+```{r}
+a1 = mean(ceprf$stateincome)
+a1
+mean(ceprm$stateincome) - a1
+se(ceprf$stateincome,ceprm$stateincome)
+
+a2 = mean(ceprhc$stateincome)
+a2
+mean(ceprlc$stateincome) - a2
+se(ceprhc$stateincome,ceprlc$stateincome)
+
+a3 = mean(ceprlt$stateincome)
+a3
+mean(ceprht$stateincome) - a3
+se(ceprlt$stateincome,ceprht$stateincome)
+```
+
+```{r}
+a1 = mean(ceprf$csr)
+a1
+mean(ceprm$csr) - a1
+se(ceprf$csr,ceprm$csr)
+
+a2 = mean(ceprhc$csr)
+a2
+mean(ceprlc$csr) - a2
+se(ceprhc$csr,ceprlc$csr)
+
+a3 = mean(ceprlt$csr)
+a3
+mean(ceprht$csr) - a3
+se(ceprlt$csr,ceprht$csr)
+```
+```{r}
+a1 = mean(ceprf$lw)
+a1
+mean(ceprm$lw) - a1
+se(ceprf$lw,ceprm$lw)
+
+a2 = mean(ceprhc$lw)
+a2
+mean(ceprlc$lw) - a2
+se(ceprhc$lw,ceprlc$lw)
+
+a3 = mean(ceprlt$lw)
+a3
+mean(ceprht$lw) - a3
+se(ceprlt$lw,ceprht$lw)
+```
+
+
+```{r}
+  fit1 <- lm((lw) ~ 
+               college, 
+             data = cepr3)
+  summary(fit1)
+  
+  fit2 <- lm((lw) ~ 
+               college + white,
+             data = cepr3)
+  summary(fit2)
+  anova(fit1, fit2)
+  
+  fit3 <- lm((lw) ~ 
+               college + white + bla,
+             data = cepr3)
+  summary(fit3)
+  anova(fit2, fit3)
+  
+  fit4 <- lm((lw) ~ 
+               college + white + bla + age,
+             data = cepr3)
+  summary(fit4)
+  anova(fit3, fit4)
+  
+  fit5 <- lm((lw) ~ 
+               college + white + bla + age + male,
+             data = cepr3)
+  summary(fit5)
+  anova(fit4, fit5)
+  
+  fit6 <- lm((lw) ~ 
+               college + white + bla + age + male + lf,
+             data = cepr3)
+  summary(fit6)
+  anova(fit5, fit6)
+  
+  fit7 <- lm((lw) ~ 
+               college + white + bla + age + male + lf + stateincome,
+             data = cepr3)
+  summary(fit7)
+  anova(fit6, fit7)
+  
+  fit8 <- lm((lw) ~ 
+               college + white + bla + age + male + lf + stateincome + csr,
+             data = cepr3)
+  summary(fit8)
+  anova(fit7, fit8) 
+```
+
+
+```{r}
+tsls1 <- lm((college) ~ 
+               school, 
+             data = cepr3)
+summary(tsls1)
+
+tsls2 <- lm((college) ~ 
+              school + white + bla + age + male + lf + stateincome + csr, 
+             data = cepr3)
+summary(tsls2)
+
+tsls3 <- lm((college) ~ 
+               dtuition, 
+             data = cepr3)
+summary(tsls3)
+
+tsls4 <- lm((college) ~ 
+                dtuition + white + bla + age + male + lf + stateincome + csr,
+             data = cepr3)
+summary(tsls4)
+```
+ 
+```{r}
+linearHypothesis(tsls1, c("school = 0"))
+linearHypothesis(tsls2, c("school = 0"))
+linearHypothesis(tsls3, c("dtuition = 0"))
+linearHypothesis(tsls4, c("dtuition = 0"))
+```
+```{r}
+tsls5 <- lm((college) ~ 
+                 school + dtuition + white + bla + age + male + lf + stateincome + csr,
+             data = cepr3)
+summary(tsls5)
+linearHypothesis(tsls5, c("dtuition = 0","school = 0"))
+```
+
+
+```{r}
+ols <- lm((lw) ~ 
+              college, 
+             data = cepr3)
+summary(ols)
+plot(ols)
+```
+
+```{r}
+fm1 <- ivreg((lw) ~ college + white + bla + age + male + lf + stateincome + csr | school + white + bla + age + male + lf + stateincome + csr,
+  data = cepr3)
+summary(fm1)
+
+fm2 <- ivreg((lw) ~ college + white + bla + age + male + lf + stateincome + csr | dtuition + white + bla + age + male + lf + stateincome + csr,
+  data = cepr3)
+summary(fm2)
+
+fm3 <- ivreg((lw) ~ college + white + bla + age + male + lf + stateincome + csr | school + dtuition + white + bla + age + male + lf + stateincome + csr,
+  data = cepr3)
+summary(fm3)
+```
+
+```{r}
+u.hat = cepr3$lw - summary(fm3)$coefficients[1, 1] - summary(fm3)$coefficients[2, 1]*cepr3$college - summary(fm3)$coefficients[3, 1]*cepr3$white - summary(fm3)$coefficients[4, 1]*cepr3$bla -summary(fm3)$coefficients[5, 1]*cepr3$age - summary(fm3)$coefficients[6, 1]*cepr3$male - summary(fm3)$coefficients[7, 1]*cepr3$lf - summary(fm3)$coefficients[8, 1]*cepr3$stateincome - summary(fm3)$coefficients[9, 1]*cepr3$csr
+```
+
+```{r}
+test <- lm((u.hat) ~ 
+             school + dtuition + white + bla + age + 
+    male + lf + stateincome + csr, 
+             data = cepr3)
+summary(test)
+```
+
+```{r}
+linearHypothesis(test, c("dtuition=0", "school=0"))
+```
+
+
+```{r}
+install.packages("did")
+```
+
+```{r}
+install.packages("xtable")
+library(xtable)
+data("nls_panel", package="PoEdata")
+nlspd <- pdata.frame(nls_panel, index=c("id", "year"))
+```
+
